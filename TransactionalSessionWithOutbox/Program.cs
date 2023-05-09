@@ -46,7 +46,8 @@ public static class Program
         var endpoint = await startableEndpoint.Start(serviceProvider);
 
         // Open session, send message, commit session
-        var transactionalSession = serviceProvider.GetRequiredService<ITransactionalSession>();
+        using var scope = serviceProvider.CreateScope();
+        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
         await transactionalSession.Open(new SqlPersistenceOpenSessionOptions());
         await transactionalSession.Send<IMyCommand>(_ => { });
         await transactionalSession.Commit();
