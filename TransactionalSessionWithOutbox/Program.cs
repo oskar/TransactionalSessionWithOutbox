@@ -46,11 +46,14 @@ public static class Program
         var endpoint = await startableEndpoint.Start(serviceProvider);
 
         // Open session, send message, commit session
-        using var scope = serviceProvider.CreateScope();
-        using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-        await transactionalSession.Open(new SqlPersistenceOpenSessionOptions());
-        await transactionalSession.Send<IMyCommand>(_ => { });
-        await transactionalSession.Commit();
+        // Manage the scope explicitly to make sure the provider and the session get disposed
+        using (var scope = serviceProvider.CreateScope())
+        using(var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+        {
+            await transactionalSession.Open(new SqlPersistenceOpenSessionOptions());
+            await transactionalSession.Send<IMyCommand>(_ => { });
+            await transactionalSession.Commit();
+        }
 
         // Waiting less than 5 seconds is too short, no message will be sent
         await Task.Delay(TimeSpan.FromSeconds(10));
